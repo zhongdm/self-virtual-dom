@@ -1,0 +1,42 @@
+
+const esprima = require('esprima')
+const estraverse = require('estraverse')
+const escodegen = require('escodegen')
+const fs = require('fs')
+const path = require('path')
+
+// read file data
+const data = fs.readFileSync(path.resolve(__dirname, 'source.js'))
+console.log('read file success')
+const jsCode = data.toString()
+
+const AST = esprima.parseScript(jsCode)
+walkIn(AST)
+const code = escodegen.generate(AST)
+
+// write data into file
+fs.writeFile(path.resolve(__dirname, 'dest.js'), code, (err) => {
+  if (err) {
+    throw err
+  }
+  console.log('write file success')
+})
+function walkIn (ast) {
+  estraverse.traverse(ast, {
+    enter: (node) => {
+      setParseInt(node)
+    }
+  })
+}
+
+function setParseInt (node) {
+  if (node.type === 'CallExpression'
+      && node.callee.name === 'parseInt'
+      && node.arguments.length === 1) {
+    node.arguments.push({
+      "type": 'Literal',
+      "value": 10,
+      "raw": '10'
+    })
+  }
+}
